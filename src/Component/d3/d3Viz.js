@@ -1,19 +1,27 @@
 import * as d3 from "d3";
 
-function Chart(config, data){
-    var width = config.width,
-        height = config.height,
-        id = config.id,
-        svg
-
-
+function Chart(config, data){    
     let margin = (config.margin ? 
         config.margin : 
-        {top: 0, bottom: 0, left: 0, right: 0}
+        {top: 50, bottom: 100, left: 50, right: 50}
     )
+
+    var width = config.width - margin.left - margin.right,
+        height = config.height - margin.top - margin.bottom,
+        id = config.id,
+        svg,
+        xScale,
+        yScale,
+        labels,
+        xAxisCall,
+        yAxisCall,
+        x_axis = d3.axisBottom(),
+        y_axis = d3.axisLeft(),
+        dur = 1000
 
     function chart(){
         initialize();
+        updateScales();
         drawChart();
     }
 
@@ -21,38 +29,64 @@ function Chart(config, data){
         svg = d3.select('#' + id).select('svg')
             .append('g')
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        labels = svg.append('g')
+        xAxisCall = labels.append('g')
+            .attr('class', 'axis')
+            .attr("transform", "translate(" + 0 + "," + height + ")")
+
+        yAxisCall = labels.append('g')
+            .attr('class', 'axis')
+
+    }
+
+    const updateScales = (resizing=false) => {
+        xScale = d3.scaleLinear()
+            .range([0, width])
+            .domain([0, d3.max(data, d=> d.x)])
+
+        yScale = d3.scaleLinear()
+            .range([height, 0])
+            .domain(d3.extent(data, d=> d.y))
+
+        x_axis.scale(xScale);
+        y_axis.scale(yScale);
+
+        xAxisCall
+            .attr("transform", "translate(" + 0 + "," + height + ")")
+
+        xAxisCall.transition().duration(resizing ? 0 : dur).call(x_axis)
+        yAxisCall.transition().duration(resizing ? 0 : dur).call(y_axis)
+
     }
     
-    const drawChart = () =>{
-        var circ = svg.selectAll('circle').data([{id: 'test-circ'}])
-        circ
-            .attr('cx', width/2)
-            .attr('cy', height/2)
-            .attr('r', Math.min(width, height) * 0.45)
-            .attr('fill', getRandomColor())
+    const drawChart = (resizing=false) =>{
+        var scatter = svg.selectAll('.dots')
+            .data(data, d=>d.x)
+        scatter
+            .transition().duration(resizing ? 0 : dur)
+            .attr('cx', d=> xScale(d.x))
+            .attr('cy', d=> yScale(d.y))
 
-        circ.enter()
+        scatter.enter()
             .append('circle')
-            .attr('id', d=> d.id)
-            .attr('cx', width/2)
-            .attr('cy', height/2)
-            .attr('r', Math.min(width, height) * 0.45)
-            .attr('fill', getRandomColor())
-    }
+            .attr('class', 'dots')
+            .attr('cx', d=> xScale(d.x))
+            .attr('cy', d=> yScale(yScale.domain()[0]))
+            .attr('fill', 'steelblue')
+            .attr('r', 5)
+            .transition().duration(resizing ? 0 : dur)
+            .attr('cy', d=> yScale(d.y))
 
-    function getRandomColor() {
-        var letters = '0123456789ABCDEF';
-        var color = '#';
-        for (var i = 0; i < 6; i++) {
-          color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-      }
+
+    }
 
     chart.data = function(value) {
         if (!arguments.length) return data;
         if (value !== data){
-            drawChart();
+            data = value;
+            updateScales(false)
+            drawChart(false);
         }
         return chart;
     }
@@ -71,9 +105,10 @@ function Chart(config, data){
 
     chart.size = function(w, h){
         if (!arguments.length) return {width: width, height: height}
-        chart.width(w);
-        chart.height(h);
-        drawChart();
+        chart.width(w - margin.left - margin.right);
+        chart.height(h - margin.top - margin.bottom);
+        updateScales(true);
+        drawChart(true);
         return chart;
     }
 

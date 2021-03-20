@@ -27,7 +27,7 @@ function useResize(ref, resizeTimeout) {
 }
 
 const D3Container = ({id, d3Chart, config = {}, data, styles, resizeTimeout=100}) => {
-    let chart = useRef(undefined);
+    const chart = useRef(undefined);
     const rootRef = useRef(null)
     const size = useResize(rootRef, resizeTimeout);
 
@@ -44,10 +44,11 @@ const D3Container = ({id, d3Chart, config = {}, data, styles, resizeTimeout=100}
             // Resize the viz
             chart.current.size(size.width, size.height)
         }
+    }, [size])
 
-
-    }, [config, d3Chart, id, data, size, resizeTimeout])
-
+    if (chart.current){
+        chart.current.data(data);
+    }
 
     return (
         <div id={'d3-' + id} style={{height: "100%", width: "100%", ...styles}} ref={rootRef}>
