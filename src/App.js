@@ -3,6 +3,7 @@ import D3Container from "./Component/D3Container";
 import Chart from "./Component/d3/d3Viz";
 import * as d3 from "d3";
 import { useState } from 'react';
+import { useRef } from 'react';
 
 
 const generateRandomData = (n, type) => {
@@ -34,6 +35,8 @@ const App = () => {
     setData(generateRandomData(100, e.target.value))
   }
 
+  const ref = useRef();
+
   return (
     <div className="App" style={{height: "90vh", width: "100vw", paddingTop: "10vh"}}>
         <select name="dist" id="dist" onChange={(e)=> changeDropdown(e)} value={func}>
@@ -43,7 +46,7 @@ const App = () => {
           <option value="log">Log Normal</option>
         </select>
         <div style={{height: "50%", width:"50%", margin: "auto"}} >
-          <D3Container id="template" d3Chart={Chart} data={data}/>
+          <D3Container ref={ref} id="template" d3Chart={Chart} data={data}/>
         </div>
     </div>
   );

@@ -1,62 +1,63 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { debounce } from "lodash";
 
+function useResize(timeout) {
+    const ref = useRef();
+    const [ size, setSize ] = useState({ width: 0, height: 0 });
 
-function useResize(ref, resizeTimeout) {
-    const [state, setState] = useState();
-    useEffect(()=> {
-        const getSize = debounce(()=>{
-            if (!ref || !ref.current) {
-                return;
-            }
-            const width = ref.current.offsetWidth;
-            const height = ref.current.offsetHeight;
+    useLayoutEffect(() => {
+        if(!ref.current) return;
 
-            setState({
-                width,
-                height
+        // Sets dimensions state after [timeout] ms.
+        const resizeHandler = debounce(() => {
+            setSize({
+                width: ref.current.offsetWidth,
+                height: ref.current.offsetHeight
             });
-        }, resizeTimeout)
+        }, timeout);
+        
+        // Initialize the referenced DOM element's dimensions.
+        resizeHandler();
 
-        window.addEventListener('resize', getSize);
-        getSize();
-        return() => window.removeEventListener("resize", getSize);
-    }, [ref, resizeTimeout]);
+        // Add the event listener to the window.
+        window.addEventListener('resize', resizeHandler);
 
-    return state;
+        // Remove the event listener upon unmount.
+        return () => window.removeEventListener("resize", resizeHandler);
+    }, [ ref.current, timeout ]);
+
+    return { containerRef: ref, size };
 }
 
-const D3Container = ({id, d3Chart, config = {}, data, styles, resizeTimeout=100}) => {
-    const chart = useRef(undefined);
-    const rootRef = useRef(null)
-    const size = useResize(rootRef, resizeTimeout);
+const D3Container = React.forwardRef(({ id, d3Chart, config = {}, data, containerStyle, resizeTimeout = 100 }, ref) => {
+    const { containerRef, size } = useResize(resizeTimeout);
 
     useEffect(() => {
-        if (chart.current === undefined && size){
+        if (!ref.current){
             // Initial draw of the viz 
-            config.id = 'd3-' + id
+            config.id = id;
             config.height = size.height;
             config.width = size.width;
         
-            chart.current = d3Chart(config, data);
-            chart.current();
-        } else if (chart.current && size){
+            ref.current = d3Chart(config, data);
+            ref.current();
+        } else {
             // Resize the viz
-            chart.current.size(size.width, size.height)
+            ref.current.size(size.width, size.height);
         }
-    }, [size])
+    }, [ size ]);
 
-    if (chart.current){
-        chart.current.data(data);
-    }
+    // Upon a change of data, propagate the updated data down to the visualization.
+    useEffect(() => {
+        if(!ref.current) return;
+        ref.current.data(data);
+    }, [ data ]);
 
     return (
-        <div id={'d3-' + id} style={{height: "100%", width: "100%", ...styles}} ref={rootRef}>
-            {size && (
-                <svg width={size.width} height={size.height}> </svg>
-            )}
+        <div id={id} ref={containerRef} style={{ height: "100%", width: "100%", ...containerStyle }}>
+            <svg width={size.width} height={size.height} />
         </div>
     )
-}
+});
 
 export default D3Container;
