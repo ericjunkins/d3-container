@@ -1,6 +1,6 @@
 import './App.css';
 import D3Container from "./Component/D3Container";
-import Chart from "./Component/d3/d3Viz";
+import scatterplot from "./Component/d3/d3Viz";
 import * as d3 from "d3";
 import { useState } from 'react';
 import { useRef } from 'react';
@@ -35,7 +35,7 @@ const App = () => {
     setData(generateRandomData(100, e.target.value))
   }
 
-  const ref = useRef();
+  const vizRef = useRef();
 
   return (
     <div className="App" style={{height: "90vh", width: "100vw", paddingTop: "10vh"}}>
@@ -46,7 +46,7 @@ const App = () => {
           <option value="log">Log Normal</option>
         </select>
         <div style={{height: "50%", width:"50%", margin: "auto"}} >
-          <D3Container ref={ref} id="template" d3Chart={Chart} data={data}/>
+          <D3Container ref={vizRef} id="template" viz={scatterplot} data={data}/>
         </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { debounce } from "lodash";
+import { select } from "d3";
 
 function useResize(timeout) {
     const ref = useRef();
@@ -29,28 +30,37 @@ function useResize(timeout) {
     return { containerRef: ref, size };
 }
 
-const D3Container = React.forwardRef(({ id, d3Chart, config = {}, data, containerStyle, resizeTimeout = 100 }, ref) => {
+const D3Container = React.forwardRef(({ id, viz, config = {}, data, containerStyle, resizeTimeout = 100 }, vizRef) => {
     const { containerRef, size } = useResize(resizeTimeout);
 
+    // Upon first mount, initialize visualization with initial configuration.
     useEffect(() => {
-        if (!ref.current){
-            // Initial draw of the viz 
-            config.id = id;
-            config.height = size.height;
-            config.width = size.width;
-        
-            ref.current = d3Chart(config, data);
-            ref.current();
-        } else {
-            // Resize the viz
-            ref.current.size(size.width, size.height);
+        config = {
+            ...config, 
+            id
         }
+
+        // Initialize the visualization closure with an optional configuration.
+        var chart = viz(config);
+
+        // Store the reference to the visualization to easily expose getters/setters.
+        vizRef.current = chart;
+            
+        // Use selection.call to attach visualization to selected DOM element (the container div).
+        select(containerRef.current)
+            .call(chart);
+    }, []);
+
+    // Upon a resize event, set the visualization size to the proper dimensions.
+    useLayoutEffect(() => {
+        if(!vizRef.current) return;
+        vizRef.current.size(size.width, size.height);
     }, [ size ]);
 
     // Upon a change of data, propagate the updated data down to the visualization.
     useEffect(() => {
-        if(!ref.current) return;
-        ref.current.data(data);
+        if(!vizRef.current) return;
+        vizRef.current.data(data);
     }, [ data ]);
 
     return (
