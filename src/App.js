@@ -5,46 +5,29 @@ import * as d3 from "d3";
 import { useState } from 'react';
 import { useRef } from 'react';
 
-
-const generateRandomData = (n, type) => {
-
-  var dataset = d3.range(n).map(function(d, i){
-    let val;
-    if (type === 'exponential'){
-      val = d3.randomExponential(1)()
-    } else if ( type === 'random'){
-      val = d3.randomUniform()()
-    } else if (type === 'log'){
-      val = d3.randomLogNormal()()
-    } else if (type ==='normal'){
-      val = d3.randomNormal()()
+const generateRandomMatrix = (n, m, x=1) => {
+  var matrix = []
+  for (var i=0; i < m; i++){
+    var tmp = []
+    for (var j=0; j < n; j++){
+      var num = Math.random() * x
+      if (x > 1){
+        num = Math.round(num)
+      }
+      tmp.push(i === j ? 0 : num)
     }
-    return {x: i, y: val }
-  })
-  return dataset
+    matrix.push(tmp)
+  } 
+  return matrix
 }
 
-
-
 const App = () => {
-  const [func, setFunc] = useState('normal');
-  const [data, setData] = useState(generateRandomData(100, func))
-
-  const changeDropdown = (e) => {
-    setFunc(e.target.value)
-    setData(generateRandomData(100, e.target.value))
-  }
-
+  const [data, setData] = useState(generateRandomMatrix(5,5,100))
   const vizRef = useRef();
 
   return (
     <div className="App" style={{height: "90vh", width: "100vw", paddingTop: "10vh"}}>
-        <select name="dist" id="dist" onChange={(e)=> changeDropdown(e)} value={func}>
-          <option value="normal">Normal</option>
-          <option value="random">Random</option>
-          <option value="exponential">Exponential</option>
-          <option value="log">Log Normal</option>
-        </select>
+        <button onClick={() => setData(generateRandomMatrix(5,5,100))}> Generate Random Data </button>
         <div style={{height: "50%", width:"50%", margin: "auto"}} >
           <D3Container ref={vizRef} id="template" viz={scatterplot} data={data}/>
         </div>

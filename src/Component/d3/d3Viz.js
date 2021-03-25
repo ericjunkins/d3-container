@@ -1,21 +1,17 @@
 import * as d3 from "d3";
 
 export default function scatterplot(config = {}) {    
-    var margin = config.margin || { top: 50, bottom: 100, left: 50, right: 50 },
+    var margin = config.margin || { top: 0, bottom: 0, left: 0, right: 0 },
         width = config.width ? config.width - margin.left - margin.right : 900,
         height = config.height ? config.height - margin.top - margin.bottom : 600,
         id = config.id || 'scatterplot-viz',
         data = [],
         svg,
-        xScale,
-        yScale,
-        labels,
-        xAxisCall,
-        yAxisCall,
-        x_axis = d3.axisBottom(),
-        y_axis = d3.axisLeft(),
-        dur = 1000,
         updateScales,
+        res,
+        colors,
+        innerRadius,
+        outerRadius,
         drawChart;
 
     function chart(selection){
@@ -25,52 +21,70 @@ export default function scatterplot(config = {}) {
             svg = dom.select('svg')
                 .attr('id', id)
                 .append('g')
-                .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-            labels = svg.append('g')
-            xAxisCall = labels.append('g')
-                .attr('class', 'axis')
-                .attr("transform", "translate(" + 0 + "," + height + ")")
 
-            yAxisCall = labels.append('g')
-                .attr('class', 'axis')
+            colors = ["#440154ff", "#31668dff", "#37b578ff", "#fde725ff", "#9932a8ff"]
+
 
             updateScales = (resizing = false) => {
-                xScale = d3.scaleLinear()
-                    .range([0, width])
-                    .domain([0, d3.max(data, d=> d.x)])
-        
-                yScale = d3.scaleLinear()
-                    .range([height, 0])
-                    .domain(d3.extent(data, d=> d.y))
-        
-                x_axis.scale(xScale);
-                y_axis.scale(yScale);
-        
-                xAxisCall
-                    .attr("transform", "translate(" + 0 + "," + height + ")")
-        
-                xAxisCall.transition().duration(resizing ? 0 : dur).call(x_axis)
-                yAxisCall.transition().duration(resizing ? 0 : dur).call(y_axis)
+                res = d3.chord()
+                    .padAngle(0.05)
+                    .sortSubgroups(d3.descending)
+                    (data)
+                
+                outerRadius = Math.min(width, height) * 0.4
+                innerRadius = outerRadius - 20
+
+                res.forEach(function(d, i){
+                    d.index = i
+                })
+
+                svg.attr('transform', 'translate(' + width/2 + ',' + height/2 + ')');
+
             }
 
             drawChart = (resizing = false) =>{
-                var scatter = svg.selectAll('.dots')
-                    .data(data, d=>d.x)
-                scatter
-                    .transition().duration(resizing ? 0 : dur)
-                    .attr('cx', d=> xScale(d.x))
-                    .attr('cy', d=> yScale(d.y))
-        
-                scatter.enter()
-                    .append('circle')
-                    .attr('class', 'dots')
-                    .attr('cx', d=> xScale(d.x))
-                    .attr('cy', d=> yScale(yScale.domain()[0]))
-                    .attr('fill', 'steelblue')
-                    .attr('r', 5)
-                    .transition().duration(resizing ? 0 : dur)
-                    .attr('cy', d=> yScale(d.y))
+                var rings = svg.selectAll('.rings')
+                    .data(res.groups, d=> d.index)
+
+                rings.exit().remove()
+
+                rings
+                    .attr('d', d3.arc()
+                    .innerRadius(innerRadius)
+                    .outerRadius(outerRadius)
+                )
+
+                rings.enter()
+                    .append('path')
+                    .attr('class', 'rings')
+                    .style('fill', (d, i)=> colors[i])
+                    .style('stroke', 'black')
+                    .attr('d', d3.arc()
+                        .innerRadius(innerRadius)
+                        .outerRadius(outerRadius)
+                    )
+
+                
+                var ribbons = svg.selectAll('.ribbons')
+                    .data(res, d=> d.index)
+
+                ribbons.exit().remove()
+
+                ribbons
+                    .attr('d', d3.ribbon()
+                    .radius(innerRadius - 2)
+                )
+
+                ribbons.enter()
+                    .append('path')
+                    .attr('class', 'ribbons')
+                    .attr('d', d3.ribbon()
+                        .radius(innerRadius - 2)
+                    )
+                    .style('fill', d=> colors[d.source.index])
+                    .style('stroke', 'black')
+                    .style('opacity', 0.8)
             }
         });
     }
